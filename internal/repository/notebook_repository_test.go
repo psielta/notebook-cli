@@ -15,8 +15,12 @@ import (
 func TestNotebookRepositoryCreateListAndUnique(t *testing.T) {
 	db := testutil.NewTestDB(t)
 	repo := repository.NewNotebookRepository(db)
+	noteRepo := repository.NewNoteRepository(db)
 
-	err := repo.Create(context.Background(), &domain.Notebook{Name: "erp", NextNoteID: 1})
+	notebook := &domain.Notebook{Name: "erp", NextNoteID: 1}
+	err := repo.Create(context.Background(), notebook)
+	require.NoError(t, err)
+	_, err = noteRepo.Create(context.Background(), notebook.ID, "x")
 	require.NoError(t, err)
 
 	err = repo.Create(context.Background(), &domain.Notebook{Name: "erp", NextNoteID: 1})
@@ -26,6 +30,7 @@ func TestNotebookRepositoryCreateListAndUnique(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, notebooks, 1)
 	require.Equal(t, "erp", notebooks[0].Name)
+	require.Equal(t, 1, notebooks[0].NoteCount)
 }
 
 func TestNotebookRepositoryGetByNameMissing(t *testing.T) {

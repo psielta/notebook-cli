@@ -58,7 +58,7 @@ func TestCommandsHappyPath(t *testing.T) {
 
 	out, err = execute(t, a, []string{"clear", "--yes"}, "")
 	require.NoError(t, err)
-	require.Contains(t, out, "1 notas removidas.")
+	require.Contains(t, out, "1 nota removida.")
 
 	out, err = execute(t, a, []string{"show"}, "")
 	require.NoError(t, err)
@@ -77,7 +77,7 @@ func TestClearPrompt(t *testing.T) {
 	out, err := execute(t, a, []string{"clear"}, "y\n")
 
 	require.NoError(t, err)
-	require.Contains(t, out, "1 notas removidas.")
+	require.Contains(t, out, "1 nota removida.")
 }
 
 func TestClearPromptCancel(t *testing.T) {
@@ -90,6 +90,25 @@ func TestClearPromptCancel(t *testing.T) {
 	require.NoError(t, err)
 
 	out, err := execute(t, a, []string{"clear"}, "n\n")
+
+	require.NoError(t, err)
+	require.Contains(t, out, "Operacao cancelada.")
+
+	out, err = execute(t, a, []string{"show"}, "")
+	require.NoError(t, err)
+	require.Contains(t, out, "x")
+}
+
+func TestClearPromptEOFIsCancel(t *testing.T) {
+	a := testutil.NewTestApp(t)
+	_, err := execute(t, a, []string{"new", "erp"}, "")
+	require.NoError(t, err)
+	_, err = execute(t, a, []string{"use", "erp"}, "")
+	require.NoError(t, err)
+	_, err = execute(t, a, []string{"add", "x"}, "")
+	require.NoError(t, err)
+
+	out, err := execute(t, a, []string{"clear"}, "")
 
 	require.NoError(t, err)
 	require.Contains(t, out, "Operacao cancelada.")

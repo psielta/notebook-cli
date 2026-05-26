@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - implement-notebook-cli
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache: true
+
+      - name: Test
+        env:
+          CGO_ENABLED: "0"
+        run: go test ./...
+
+      - name: E2E
+        env:
+          CGO_ENABLED: "0"
+        run: go test -tags=e2e ./...
+
+      - name: Coverage
+        if: runner.os != 'Windows'
+        env:
+          CGO_ENABLED: "0"
+        run: go test -coverprofile=coverage.out ./...
+
+      - name: Coverage (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        env:
+          CGO_ENABLED: "0"
+        run: go test -coverprofile=coverage.out ./...

@@ -156,13 +156,16 @@ func (f *fakeNotebookRepo) GetByName(ctx context.Context, name string) (*domain.
 	return notebook, nil
 }
 
-func (f *fakeNotebookRepo) List(ctx context.Context) ([]domain.Notebook, error) {
+func (f *fakeNotebookRepo) List(ctx context.Context) ([]domain.NotebookListItem, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
-	items := make([]domain.Notebook, 0, len(f.notebooks))
+	items := make([]domain.NotebookListItem, 0, len(f.notebooks))
 	for _, notebook := range f.notebooks {
-		items = append(items, *notebook)
+		items = append(items, domain.NotebookListItem{
+			Name:      notebook.Name,
+			NoteCount: len(notebook.Notes),
+		})
 	}
 	return items, nil
 }

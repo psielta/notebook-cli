@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"gorm.io/gorm"
 
@@ -39,10 +38,16 @@ func (r *NotebookRepository) GetByName(ctx context.Context, name string) (*domai
 	return &notebook, nil
 }
 
-func (r *NotebookRepository) List(ctx context.Context) ([]domain.Notebook, error) {
-	var notebooks []domain.Notebook
-	err := r.db.WithContext(ctx).Preload("Notes").Order("name ASC").Find(&notebooks).Error
-	return notebooks, err
+func (r *NotebookRepository) List(ctx context.Context) ([]domain.NotebookListItem, error) {
+	var items []domain.NotebookListItem
+	err := r.db.WithContext(ctx).
+		Table("notebooks").
+		Select("notebooks.name, COUNT(notes.id) AS note_count").
+		Joins("LEFT JOIN notes ON notes.notebook_id = notebooks.id").
+		Group("notebooks.id, notebooks.name").
+		Order("notebooks.name ASC").
+		Scan(&items).Error
+	return items, err
 }
 
 func (r *NotebookRepository) Delete(ctx context.Context, id uint) error {
@@ -54,5 +59,13 @@ func isUniqueConstraint(err error) bool {
 	if err == nil {
 		return false
 	}
-	return strings.Contains(strings.ToLower(err.Error()), "unique constraint")
+
+	var sqliteErr interface {
+		error
+		Code() int
+	}
+	if errors.As(err, &sqliteErr) {
+		return sqliteErr.Code() == 2067
+	}
+	return false
 }

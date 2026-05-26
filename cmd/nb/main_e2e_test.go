@@ -43,6 +43,6 @@ func TestBinaryFlow(t *testing.T) {
 	require.Contains(t, run("add", "testar importacao"), "Nota 2 adicionada.")
 	require.Contains(t, run("show"), "corrigir problema x")
 	require.Contains(t, run("remove", "1"), "Nota 1 removida.")
-	require.Contains(t, run("clear", "--yes"), "1 notas removidas.")
+	require.Contains(t, run("clear", "--yes"), "1 nota removida.")
 	require.Contains(t, run("show"), "nenhuma nota")
 }

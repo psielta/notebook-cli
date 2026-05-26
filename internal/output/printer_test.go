@@ -8,12 +8,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"notebook-cli/internal/domain"
-	"notebook-cli/internal/service"
 )
 
 func TestPrintNotebooks(t *testing.T) {
 	var out bytes.Buffer
-	err := NewPrinter(&out).PrintNotebooks([]service.NotebookListItem{{Name: "erp", NoteCount: 2}})
+	err := NewPrinter(&out).PrintNotebooks([]domain.NotebookListItem{{Name: "erp", NoteCount: 2}})
 
 	require.NoError(t, err)
 	require.Contains(t, out.String(), "NOME")

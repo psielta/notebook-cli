@@ -26,6 +26,9 @@ func Open(path string) (*gorm.DB, error) {
 	}
 
 	if err := db.AutoMigrate(&domain.Notebook{}, &domain.Note{}); err != nil {
+		if sqlDB, dbErr := db.DB(); dbErr == nil {
+			_ = sqlDB.Close()
+		}
 		return nil, err
 	}
 

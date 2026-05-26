@@ -2,7 +2,9 @@ package commands
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -31,6 +33,10 @@ func NewClearCmd(a *app.App) *cobra.Command {
 				}
 				answer, err := bufio.NewReader(cmd.InOrStdin()).ReadString('\n')
 				if err != nil && strings.TrimSpace(answer) == "" {
+					if errors.Is(err, io.EOF) {
+						_, err := fmt.Fprintln(cmd.ErrOrStderr(), "Operacao cancelada.")
+						return err
+					}
 					return err
 				}
 				if strings.ToLower(strings.TrimSpace(answer)) != "y" {
@@ -43,10 +49,17 @@ func NewClearCmd(a *app.App) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%d notas removidas.\n", count)
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), removedNotesMessage(count))
 			return err
 		},
 	}
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "confirma a remocao sem prompt")
 	return cmd
+}
+
+func removedNotesMessage(count int64) string {
+	if count == 1 {
+		return "1 nota removida."
+	}
+	return fmt.Sprintf("%d notas removidas.", count)
 }

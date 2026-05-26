@@ -2,7 +2,6 @@ package state
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,12 +27,23 @@ func (c *CurrentStore) Get() (string, error) {
 }
 
 func (c *CurrentStore) Set(name string) error {
-	if err := os.MkdirAll(filepath.Dir(c.path), 0o755); err != nil {
+	dir := filepath.Dir(c.path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 
-	tmp := fmt.Sprintf("%s.%d.tmp", c.path, os.Getpid())
-	if err := os.WriteFile(tmp, []byte(name), 0o644); err != nil {
+	file, err := os.CreateTemp(dir, ".current.*.tmp")
+	if err != nil {
+		return err
+	}
+	tmp := file.Name()
+	defer os.Remove(tmp)
+
+	if _, err := file.WriteString(name); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
 		return err
 	}
 	return os.Rename(tmp, c.path)

@@ -7,7 +7,6 @@ import (
 	"text/tabwriter"
 
 	"notebook-cli/internal/domain"
-	"notebook-cli/internal/service"
 )
 
 type Printer struct {
@@ -18,7 +17,7 @@ func NewPrinter(w io.Writer) *Printer {
 	return &Printer{w: w}
 }
 
-func (p *Printer) PrintNotebooks(items []service.NotebookListItem) error {
+func (p *Printer) PrintNotebooks(items []domain.NotebookListItem) error {
 	if len(items) == 0 {
 		_, err := fmt.Fprintln(p.w, "nenhum notebook encontrado")
 		return err

@@ -1,5 +1,7 @@
 # Notebook CLI (`nb`)
 
+[![CI](https://github.com/psielta/notebook-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/psielta/notebook-cli/actions/workflows/ci.yml)
+
 CLI em Go para criar e gerenciar notebooks de notas locais diretamente pelo terminal.
 
 O projeto foi pensado para uso no PowerShell do Windows, com armazenamento local em SQLite, comandos curtos e uma arquitetura simples de manter.
@@ -116,9 +118,9 @@ go tool cover -func=coverage.out
 
 Cobertura atual:
 
-- Total: 88.1%
-- `internal/repository`: 94.4%
-- `internal/service`: 92.3%
+- Total: 87.2%
+- `internal/repository`: 93.0%
+- `internal/service`: 95.6%
 
 ## Observacoes Para Windows
 

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -28,12 +27,6 @@ func (s *NotebookService) Create(ctx context.Context, name string) (*domain.Note
 		return nil, apperrors.ErrInvalidName
 	}
 
-	if _, err := s.notebooks.GetByName(ctx, name); err == nil {
-		return nil, fmt.Errorf("%w: %s", apperrors.ErrNotebookExists, name)
-	} else if !errors.Is(err, apperrors.ErrNotebookNotFound) {
-		return nil, err
-	}
-
 	notebook := &domain.Notebook{Name: name, NextNoteID: 1}
 	if err := s.notebooks.Create(ctx, notebook); err != nil {
 		return nil, err
@@ -53,7 +46,7 @@ func (s *NotebookService) Use(ctx context.Context, name string) (*domain.Noteboo
 	}
 
 	if err := s.current.Set(notebook.Name); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("falha ao gravar .current: %w", err)
 	}
 	return notebook, nil
 }
@@ -72,18 +65,6 @@ func (s *NotebookService) Current(ctx context.Context) (string, error) {
 	return name, nil
 }
 
-func (s *NotebookService) List(ctx context.Context) ([]NotebookListItem, error) {
-	notebooks, err := s.notebooks.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]NotebookListItem, 0, len(notebooks))
-	for _, notebook := range notebooks {
-		items = append(items, NotebookListItem{
-			Name:      notebook.Name,
-			NoteCount: len(notebook.Notes),
-		})
-	}
-	return items, nil
+func (s *NotebookService) List(ctx context.Context) ([]domain.NotebookListItem, error) {
+	return s.notebooks.List(ctx)
 }
