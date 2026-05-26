@@ -40,3 +40,17 @@ func TestRunHappyPathAndBusinessError(t *testing.T) {
 	require.Equal(t, 1, run([]string{"use", "missing"}, nil, &out, &errOut))
 	require.Contains(t, errOut.String(), "Erro:")
 }
+
+func TestRunVersionDoesNotCreateAppData(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("HOME", home)
+
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+
+	require.Equal(t, 0, run([]string{"--version"}, nil, &out, &errOut))
+	require.Equal(t, "nb dev\n", out.String())
+	require.Empty(t, errOut.String())
+	require.NoDirExists(t, filepath.Join(home, ".notebook-cli"))
+}

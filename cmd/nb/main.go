@@ -20,6 +20,10 @@ func main() {
 }
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	if isVersionRequest(args) {
+		return executeRoot(nil, args, stdin, stdout, stderr)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintln(stderr, commands.FormatError(err))
@@ -50,6 +54,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		CurrentStore:    current,
 	}
 
+	return executeRoot(a, args, stdin, stdout, stderr)
+}
+
+func executeRoot(a *app.App, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	root := commands.NewRootCmd(a)
 	root.SetArgs(args)
 	root.SetIn(stdin)
@@ -64,4 +72,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 2
 	}
 	return 0
+}
+
+func isVersionRequest(args []string) bool {
+	return len(args) == 1 && args[0] == "--version"
 }

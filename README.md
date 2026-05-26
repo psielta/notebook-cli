@@ -48,6 +48,12 @@ Build local:
 go build -o nb.exe ./cmd/nb
 ```
 
+Build com versao:
+
+```powershell
+go build -ldflags "-X notebook-cli/internal/version.Version=v1.0.0" -o nb.exe ./cmd/nb
+```
+
 Depois, use `.\nb.exe` no diretorio do projeto ou adicione o binario ao `PATH`.
 
 ## Uso Rapido
@@ -85,6 +91,7 @@ ID  CRIADO EM            TEXTO
 | `nb last [n]` | Mostra as ultimas `n` notas. Sem argumento, mostra a ultima. |
 | `nb remove <id>` | Remove uma nota pelo ID local. |
 | `nb clear [--yes]` | Remove todas as notas do notebook atual. |
+| `nb --version` | Mostra a versao do binario. |
 
 ## Roadmap
 
@@ -113,6 +120,7 @@ internal/domain        entidades Notebook e Note
 internal/database      abertura e migracao do SQLite
 internal/session       resolucao do identificador da sessao de terminal
 internal/state         leitura/escrita do current por sessao
+internal/version       versao do binario para --version e builds de release
 internal/output        formatacao de tabelas no terminal
 internal/testutil      helpers para testes
 ```

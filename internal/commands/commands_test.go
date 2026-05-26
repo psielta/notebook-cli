@@ -191,6 +191,15 @@ func TestSessionIsolationBetweenApps(t *testing.T) {
 	require.NotContains(t, out, "tarefa B")
 }
 
+func TestRootVersionFlag(t *testing.T) {
+	a := testutil.NewTestApp(t)
+
+	out, err := execute(t, a, []string{"--version"}, "")
+
+	require.NoError(t, err)
+	require.Equal(t, "nb dev\n", out)
+}
+
 func execute(t *testing.T, a *app.App, args []string, stdin string) (string, error) {
 	t.Helper()
 
