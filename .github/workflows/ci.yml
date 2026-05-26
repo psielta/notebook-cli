@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - name: Checkout
+        shell: bash
+        run: |
+          git init
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --depth=1 origin "${GITHUB_REF}"
+          git checkout --detach FETCH_HEAD
+
+      - name: Go version
+        run: go version
+
+      - name: Test
+        env:
+          CGO_ENABLED: "0"
+        run: go test ./...
+
+      - name: E2E
+        env:
+          CGO_ENABLED: "0"
+        run: go test -tags=e2e ./...
+
+      - name: Coverage
+        if: runner.os != 'Windows'
+        env:
+          CGO_ENABLED: "0"
+        run: go test -coverprofile=coverage.out ./...
+
+      - name: Coverage (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        env:
+          CGO_ENABLED: "0"
+        run: go test -coverprofile=coverage.out ./...
