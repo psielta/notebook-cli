@@ -82,6 +82,20 @@ ID  CRIADO EM            TEXTO
 | `nb remove <id>` | Remove uma nota pelo ID local. |
 | `nb clear [--yes]` | Remove todas as notas do notebook atual. |
 
+## Roadmap
+
+Melhorias planejadas para evoluir o projeto:
+
+- `nb remove last`: remover a ultima nota sem precisar copiar o ID.
+- `nb edit <id>`: editar o texto de uma nota existente.
+- `nb search <termo>`: buscar notas por palavra ou trecho de texto.
+- `nb rename <nome-atual> <novo-nome>`: renomear um notebook.
+- `nb export`: exportar notas para Markdown ou JSON.
+- `nb import`: importar notas a partir de JSON.
+- `nb stats`: mostrar quantidade de notebooks, notas e data da ultima nota.
+- Instalador simples para Windows, copiando `nb.exe` para uma pasta no `PATH`.
+- Releases no GitHub com binarios prontos para download.
+
 ## Arquitetura
 
 O projeto usa layout idiomatico com `cmd/` e `internal/`:
