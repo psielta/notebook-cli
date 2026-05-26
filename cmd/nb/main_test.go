@@ -12,6 +12,7 @@ func TestRunHappyPathAndBusinessError(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HOME", home)
+	t.Setenv("NB_SESSION_ID", "test-x")
 
 	var out bytes.Buffer
 	var errOut bytes.Buffer
@@ -32,7 +33,8 @@ func TestRunHappyPathAndBusinessError(t *testing.T) {
 	require.Contains(t, out.String(), "x")
 
 	require.FileExists(t, filepath.Join(home, ".notebook-cli", "notebook.db"))
-	require.FileExists(t, filepath.Join(home, ".notebook-cli", ".current"))
+	require.FileExists(t, filepath.Join(home, ".notebook-cli", "sessions", "test-x.current"))
+	require.NoFileExists(t, filepath.Join(home, ".notebook-cli", ".current"))
 
 	errOut.Reset()
 	require.Equal(t, 1, run([]string{"use", "missing"}, nil, &out, &errOut))

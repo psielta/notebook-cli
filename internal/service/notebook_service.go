@@ -46,7 +46,7 @@ func (s *NotebookService) Use(ctx context.Context, name string) (*domain.Noteboo
 	}
 
 	if err := s.current.Set(notebook.Name); err != nil {
-		return nil, fmt.Errorf("falha ao gravar .current: %w", err)
+		return nil, fmt.Errorf("falha ao gravar arquivo da sessao: %w", err)
 	}
 	return notebook, nil
 }

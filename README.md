@@ -19,7 +19,11 @@ $env:USERPROFILE\.notebook-cli
 Arquivos criados:
 
 - `notebook.db`: banco SQLite unico da aplicacao.
-- `.current`: notebook selecionado no momento.
+- `sessions/<id>.current`: notebook selecionado na sessao de terminal
+  identificada por `<id>`. Cada janela do PowerShell mantem sua propria
+  selecao; abrir uma segunda janela comeca sem notebook selecionado ate
+  rodar `nb use <nome>`. O `<id>` e derivado do processo do terminal pai
+  (PID + horario de criacao) ou do valor opcional de `NB_SESSION_ID`.
 
 ## Funcionalidades
 
@@ -107,7 +111,8 @@ internal/service       regras de negocio
 internal/repository    persistencia com GORM
 internal/domain        entidades Notebook e Note
 internal/database      abertura e migracao do SQLite
-internal/state         leitura/escrita do .current
+internal/session       resolucao do identificador da sessao de terminal
+internal/state         leitura/escrita do current por sessao
 internal/output        formatacao de tabelas no terminal
 internal/testutil      helpers para testes
 ```
@@ -143,6 +148,22 @@ PowerShell 7 ja usa UTF-8 por padrao. Em consoles antigos, rode:
 ```powershell
 chcp 65001
 ```
+
+### Compartilhando a selecao entre sessoes
+
+Por padrao, cada janela do PowerShell tem sua propria selecao de notebook
+atual. Para forcar duas janelas a compartilharem a selecao (util para
+automacao, CI ou pipes), defina `NB_SESSION_ID` em cada uma:
+
+```powershell
+$env:NB_SESSION_ID = "shared"
+nb use erp
+```
+
+A variavel e escopada ao processo do PowerShell; nao use `setx`, pois ele
+grava no registro do usuario e nao afeta sessoes ja abertas. Use um valor
+curto com letras, numeros, `_`, `-` ou `.`, mas nao comece com `sh-`, que e
+reservado para sessoes detectadas automaticamente.
 
 ## Licenca
 

@@ -11,6 +11,7 @@ import (
 	"notebook-cli/internal/database"
 	"notebook-cli/internal/repository"
 	"notebook-cli/internal/service"
+	"notebook-cli/internal/session"
 	"notebook-cli/internal/state"
 )
 
@@ -34,9 +35,13 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		defer sqlDB.Close()
 	}
 
+	sessionID := session.DefaultResolver().Resolve()
+	_ = state.MigrateLegacy(cfg.BaseDir, sessionID)
+	_ = state.MaybePrune(cfg.BaseDir, session.IsAlive)
+
 	notebookRepo := repository.NewNotebookRepository(db)
 	noteRepo := repository.NewNoteRepository(db)
-	current := state.New(cfg.BaseDir)
+	current := state.New(cfg.BaseDir, sessionID)
 
 	a := &app.App{
 		DB:              db,

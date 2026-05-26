@@ -11,8 +11,10 @@ type CurrentStore struct {
 	path string
 }
 
-func New(dir string) *CurrentStore {
-	return &CurrentStore{path: filepath.Join(dir, ".current")}
+func New(baseDir, sessionID string) *CurrentStore {
+	return &CurrentStore{
+		path: filepath.Join(baseDir, "sessions", sessionID+".current"),
+	}
 }
 
 func (c *CurrentStore) Get() (string, error) {

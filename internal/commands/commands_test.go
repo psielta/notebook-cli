@@ -160,6 +160,37 @@ func TestListCurrentAndClearEmpty(t *testing.T) {
 	require.Contains(t, out, "0 notas removidas.")
 }
 
+func TestSessionIsolationBetweenApps(t *testing.T) {
+	base := t.TempDir()
+	appA := testutil.NewTestAppForSession(t, base, "session-a")
+	appB := testutil.NewTestAppForSession(t, base, "session-b")
+
+	_, err := execute(t, appA, []string{"new", "erp"}, "")
+	require.NoError(t, err)
+	_, err = execute(t, appA, []string{"new", "compras"}, "")
+	require.NoError(t, err)
+
+	_, err = execute(t, appA, []string{"use", "erp"}, "")
+	require.NoError(t, err)
+	_, err = execute(t, appB, []string{"use", "compras"}, "")
+	require.NoError(t, err)
+
+	out, err := execute(t, appA, []string{"current"}, "")
+	require.NoError(t, err)
+	require.Equal(t, "erp\n", out)
+
+	out, err = execute(t, appB, []string{"current"}, "")
+	require.NoError(t, err)
+	require.Equal(t, "compras\n", out)
+
+	_, err = execute(t, appB, []string{"add", "tarefa B"}, "")
+	require.NoError(t, err)
+
+	out, err = execute(t, appA, []string{"show"}, "")
+	require.NoError(t, err)
+	require.NotContains(t, out, "tarefa B")
+}
+
 func execute(t *testing.T, a *app.App, args []string, stdin string) (string, error) {
 	t.Helper()
 

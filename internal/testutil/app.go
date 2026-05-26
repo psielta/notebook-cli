@@ -12,9 +12,12 @@ import (
 )
 
 func NewTestApp(t *testing.T) *app.App {
+	return NewTestAppForSession(t, t.TempDir(), "test-session")
+}
+
+func NewTestAppForSession(t *testing.T, baseDir, sessionID string) *app.App {
 	t.Helper()
 
-	baseDir := t.TempDir()
 	db, err := database.Open(filepath.Join(baseDir, "notebook.db"))
 	if err != nil {
 		t.Fatalf("open test app db: %v", err)
@@ -28,7 +31,7 @@ func NewTestApp(t *testing.T) *app.App {
 
 	notebookRepo := repository.NewNotebookRepository(db)
 	noteRepo := repository.NewNoteRepository(db)
-	current := state.New(baseDir)
+	current := state.New(baseDir, sessionID)
 
 	return &app.App{
 		DB:              db,
