@@ -8,6 +8,7 @@ import (
 
 	"notebook-cli/internal/app"
 	"notebook-cli/internal/apperrors"
+	"notebook-cli/internal/output"
 )
 
 func NewRemoveCmd(a *app.App) *cobra.Command {
@@ -22,7 +23,8 @@ func NewRemoveCmd(a *app.App) *cobra.Command {
 			if err := a.NoteService.Remove(cmd.Context(), localID); err != nil {
 				return err
 			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Nota %d removida.\n", localID)
+			style := output.NewStyle(cmd.OutOrStdout())
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s %s removida.\n", style.Success("Nota"), style.ID(strconv.Itoa(localID)))
 			return err
 		},
 	}

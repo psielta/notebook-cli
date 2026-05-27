@@ -33,6 +33,21 @@ func TestPrintNotes(t *testing.T) {
 	require.Contains(t, out.String(), "linha 1 linha 2")
 }
 
+func TestPrintAddedNote(t *testing.T) {
+	var out bytes.Buffer
+	err := NewPrinter(&out).PrintAddedNote(domain.Note{
+		LocalID:   1,
+		Text:      "linha 1\nlinha 2",
+		CreatedAt: time.Date(2026, 5, 26, 8, 0, 0, 0, time.Local),
+	})
+
+	require.NoError(t, err)
+	require.Contains(t, out.String(), "#1")
+	require.Contains(t, out.String(), "2026-05-26 08:00:00")
+	require.Contains(t, out.String(), "linha 1 linha 2")
+	require.NotContains(t, out.String(), "\x1b[")
+}
+
 func TestPrintEmpty(t *testing.T) {
 	var out bytes.Buffer
 	printer := NewPrinter(&out)

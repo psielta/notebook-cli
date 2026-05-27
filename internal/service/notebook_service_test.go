@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -40,6 +41,50 @@ func TestNotebookServiceCreate(t *testing.T) {
 
 		require.ErrorIs(t, err, apperrors.ErrNotebookExists)
 	})
+}
+
+func TestNotebookServiceCreateTask(t *testing.T) {
+	repo := newFakeNotebookRepo()
+	current := newFakeCurrentStore()
+	svc := newNotebookService(repo, current, fixedTaskNow)
+
+	notebook, err := svc.CreateTask(context.Background())
+
+	require.NoError(t, err)
+	require.Equal(t, "T001-2026-05-27", notebook.Name)
+	require.Equal(t, 1, notebook.NextNoteID)
+	require.Equal(t, "T001-2026-05-27", current.name)
+}
+
+func TestNotebookServiceCreateTaskUsesNextDailyNumber(t *testing.T) {
+	repo := newFakeNotebookRepo()
+	repo.notebooks["T001-2026-05-27"] = &domain.Notebook{ID: 1, Name: "T001-2026-05-27", NextNoteID: 1}
+	repo.notebooks["T003-2026-05-27"] = &domain.Notebook{ID: 2, Name: "T003-2026-05-27", NextNoteID: 1}
+	repo.notebooks["T099-2026-05-26"] = &domain.Notebook{ID: 3, Name: "T099-2026-05-26", NextNoteID: 1}
+	repo.notebooks["erp"] = &domain.Notebook{ID: 4, Name: "erp", NextNoteID: 1}
+	svc := newNotebookService(repo, newFakeCurrentStore(), fixedTaskNow)
+
+	notebook, err := svc.CreateTask(context.Background())
+
+	require.NoError(t, err)
+	require.Equal(t, "T004-2026-05-27", notebook.Name)
+}
+
+func TestNotebookServiceCreateTaskLimit(t *testing.T) {
+	repo := newFakeNotebookRepo()
+	repo.notebooks["T999-2026-05-27"] = &domain.Notebook{ID: 1, Name: "T999-2026-05-27", NextNoteID: 1}
+	svc := newNotebookService(repo, newFakeCurrentStore(), fixedTaskNow)
+
+	_, err := svc.CreateTask(context.Background())
+
+	require.ErrorIs(t, err, apperrors.ErrTaskLimitReached)
+}
+
+func TestIsTaskTemplateName(t *testing.T) {
+	require.True(t, IsTaskTemplateName("task"))
+	require.True(t, IsTaskTemplateName(" task "))
+	require.False(t, IsTaskTemplateName("Task"))
+	require.False(t, IsTaskTemplateName("tarefa"))
 }
 
 func TestNotebookServiceUseAndCurrent(t *testing.T) {
@@ -200,3 +245,7 @@ func (f *fakeCurrentStore) Clear() error {
 }
 
 var errFake = errors.New("fake error")
+
+func fixedTaskNow() time.Time {
+	return time.Date(2026, 5, 27, 12, 0, 0, 0, time.Local)
+}

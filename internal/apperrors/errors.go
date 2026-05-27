@@ -11,4 +11,5 @@ var (
 	ErrEmptyText         = errors.New("texto da nota nao pode ser vazio")
 	ErrInvalidID         = errors.New("id invalido")
 	ErrInvalidCount      = errors.New("quantidade invalida")
+	ErrTaskLimitReached  = errors.New("limite diario de tasks atingido (T999)")
 )

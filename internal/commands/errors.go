@@ -21,5 +21,6 @@ func IsBusinessError(err error) bool {
 		errors.Is(err, apperrors.ErrNoteNotFound) ||
 		errors.Is(err, apperrors.ErrEmptyText) ||
 		errors.Is(err, apperrors.ErrInvalidID) ||
-		errors.Is(err, apperrors.ErrInvalidCount)
+		errors.Is(err, apperrors.ErrInvalidCount) ||
+		errors.Is(err, apperrors.ErrTaskLimitReached)
 }

@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"errors"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -63,6 +64,61 @@ func TestCommandsHappyPath(t *testing.T) {
 	out, err = execute(t, a, []string{"show"}, "")
 	require.NoError(t, err)
 	require.Contains(t, out, "nenhuma nota")
+}
+
+func TestNewTaskCreatesAndUsesDailyNotebook(t *testing.T) {
+	a := testutil.NewTestApp(t)
+
+	out, err := execute(t, a, []string{"new", "task"}, "")
+	require.NoError(t, err)
+
+	matches := regexp.MustCompile(`Notebook '(T001-\d{4}-\d{2}-\d{2})' criado e selecionado\.`).FindStringSubmatch(out)
+	require.Len(t, matches, 2)
+
+	out, err = execute(t, a, []string{"current"}, "")
+	require.NoError(t, err)
+	require.Equal(t, matches[1]+"\n", out)
+
+	out, err = execute(t, a, []string{"new", "task"}, "")
+	require.NoError(t, err)
+	require.Contains(t, out, "T002-")
+}
+
+func TestAddResolvesAgentShortcuts(t *testing.T) {
+	a := testutil.NewTestApp(t)
+	_, err := execute(t, a, []string{"new", "erp"}, "")
+	require.NoError(t, err)
+	_, err = execute(t, a, []string{"use", "erp"}, "")
+	require.NoError(t, err)
+
+	out, err := execute(t, a, []string{"add", "clau-p"}, "")
+	require.NoError(t, err)
+	require.Contains(t, out, "Nota 1 adicionada.")
+	require.Contains(t, out, "#1 ")
+	require.Contains(t, out, "Claude planejando...")
+
+	out, err = execute(t, a, []string{"add", "dex-to-clau"}, "")
+	require.NoError(t, err)
+	require.Contains(t, out, "Codex gerando prompt para Claude...")
+
+	out, err = execute(t, a, []string{"show"}, "")
+	require.NoError(t, err)
+	require.Contains(t, out, "Claude planejando...")
+	require.Contains(t, out, "Codex gerando prompt para Claude...")
+	require.NotContains(t, out, "clau-p")
+	require.NotContains(t, out, "dex-to-clau")
+}
+
+func TestAddKeepsFreeText(t *testing.T) {
+	a := testutil.NewTestApp(t)
+	_, err := execute(t, a, []string{"new", "erp"}, "")
+	require.NoError(t, err)
+	_, err = execute(t, a, []string{"use", "erp"}, "")
+	require.NoError(t, err)
+
+	out, err := execute(t, a, []string{"add", "texto livre"}, "")
+	require.NoError(t, err)
+	require.Contains(t, out, "texto livre")
 }
 
 func TestClearPrompt(t *testing.T) {

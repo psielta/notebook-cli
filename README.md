@@ -93,6 +93,48 @@ ID  CRIADO EM            TEXTO
 | `nb clear [--yes]` | Remove todas as notas do notebook atual. |
 | `nb --version` | Mostra a versao do binario. |
 
+### Tasks diarias
+
+Use `nb new task` para criar e selecionar automaticamente um notebook de task
+com nome padronizado pela data local:
+
+```powershell
+nb new task
+```
+
+Exemplos de nomes gerados:
+
+```text
+T001-2026-05-27
+T002-2026-05-27
+```
+
+A sequencia e diaria e usa os notebooks ja existentes no banco local.
+
+### Atalhos para agentes de IA
+
+`nb add` aceita atalhos fixos para registrar rapidamente a etapa atual de um
+agente:
+
+| Atalho | Nota gravada |
+| --- | --- |
+| `clau-p` | `Claude planejando...` |
+| `clau-r` | `Claude revisando...` |
+| `clau-i` | `Claude implementando...` |
+| `dex-p` | `Codex planejando...` |
+| `dex-r` | `Codex revisando...` |
+| `dex-i` | `Codex implementando...` |
+| `clau-to-dex` | `Claude gerando prompt para Codex...` |
+| `dex-to-clau` | `Codex gerando prompt para Claude...` |
+
+Textos livres continuam funcionando normalmente. Apos adicionar qualquer nota,
+o comando mostra a nota gravada com ID, horario e texto resolvido.
+
+### Cores
+
+A CLI usa cores ANSI automaticamente em terminal interativo e desliga cores em
+redirecionamentos, pipes, testes e quando `NO_COLOR` estiver definido.
+
 ## Roadmap
 
 Melhorias planejadas para evoluir o projeto:

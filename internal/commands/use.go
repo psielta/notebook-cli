@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"notebook-cli/internal/app"
+	"notebook-cli/internal/output"
 )
 
 func NewUseCmd(a *app.App) *cobra.Command {
@@ -17,7 +18,8 @@ func NewUseCmd(a *app.App) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Usando '%s'.\n", notebook.Name)
+			style := output.NewStyle(cmd.OutOrStdout())
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s '%s'.\n", style.Success("Usando"), style.Name(notebook.Name))
 			return err
 		},
 	}
