@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"testing"
@@ -91,22 +92,33 @@ func TestAddResolvesAgentShortcuts(t *testing.T) {
 	_, err = execute(t, a, []string{"use", "erp"}, "")
 	require.NoError(t, err)
 
-	out, err := execute(t, a, []string{"add", "clau-p"}, "")
-	require.NoError(t, err)
-	require.Contains(t, out, "Nota 1 adicionada.")
-	require.Contains(t, out, "#1 ")
-	require.Contains(t, out, "Claude planejando...")
+	shortcuts := []struct {
+		input    string
+		expected string
+	}{
+		{"clau-p", "Claude planejando..."},
+		{"clau-vp", "Claude validando plano do Codex..."},
+		{"clau-cp", "Claude corrigindo plano com melhorias do Codex..."},
+		{"dex-vp", "Codex validando plano do Claude..."},
+		{"dex-cp", "Codex corrigindo plano com melhorias do Claude..."},
+		{"dex-to-clau", "Codex gerando prompt para Claude..."},
+	}
 
-	out, err = execute(t, a, []string{"add", "dex-to-clau"}, "")
-	require.NoError(t, err)
-	require.Contains(t, out, "Codex gerando prompt para Claude...")
+	var out string
+	for i, shortcut := range shortcuts {
+		out, err = execute(t, a, []string{"add", shortcut.input}, "")
+		require.NoError(t, err)
+		require.Contains(t, out, fmt.Sprintf("Nota %d adicionada.", i+1))
+		require.Contains(t, out, shortcut.expected)
+		require.NotContains(t, out, shortcut.input)
+	}
 
 	out, err = execute(t, a, []string{"show"}, "")
 	require.NoError(t, err)
-	require.Contains(t, out, "Claude planejando...")
-	require.Contains(t, out, "Codex gerando prompt para Claude...")
-	require.NotContains(t, out, "clau-p")
-	require.NotContains(t, out, "dex-to-clau")
+	for _, shortcut := range shortcuts {
+		require.Contains(t, out, shortcut.expected)
+		require.NotContains(t, out, shortcut.input)
+	}
 }
 
 func TestAddKeepsFreeText(t *testing.T) {
