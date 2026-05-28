@@ -5,7 +5,10 @@
 package session
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,18 +29,54 @@ const (
 	// considers files whose name starts with this prefix.
 	SessionPrefix = "sh-"
 
+	terminalPrefix = "term-"
+
 	walkDepthLimit = 10
 )
 
 var recognizedShells = map[string]struct{}{
+	"bash":                {},
 	"powershell.exe":      {},
+	"powershell":          {},
 	"pwsh.exe":            {},
+	"pwsh":                {},
 	"cmd.exe":             {},
+	"cmd":                 {},
 	"wt.exe":              {},
 	"windowsterminal.exe": {},
 	"bash.exe":            {},
 	"sh.exe":              {},
+	"sh":                  {},
 	"zsh.exe":             {},
+	"zsh":                 {},
+	"fish.exe":            {},
+	"fish":                {},
+	"dash":                {},
+	"ksh":                 {},
+	"mksh":                {},
+	"tcsh":                {},
+	"csh":                 {},
+	"nu.exe":              {},
+	"nu":                  {},
+	"xonsh":               {},
+	"elvish":              {},
+}
+
+var terminalEnvVars = []struct {
+	name   string
+	prefix string
+}{
+	{name: "WT_SESSION", prefix: "wt"},
+	{name: "TERM_SESSION_ID", prefix: "term"},
+	{name: "ITERM_SESSION_ID", prefix: "iterm"},
+	{name: "TMUX_PANE", prefix: "tmux"},
+	{name: "STY", prefix: "screen"},
+	{name: "SSH_TTY", prefix: "ssh"},
+	{name: "WEZTERM_PANE", prefix: "wezterm"},
+	{name: "KITTY_WINDOW_ID", prefix: "kitty"},
+	{name: "ALACRITTY_WINDOW_ID", prefix: "alacritty"},
+	{name: "CONEMUHWND", prefix: "conemu"},
+	{name: "ConEmuPID", prefix: "conemu"},
 }
 
 var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,128}$`)
@@ -57,30 +96,50 @@ type LookupFunc func(pid int) (Process, bool)
 // Resolver produces a stable session identifier. All dependencies are
 // injectable to allow deterministic tests.
 type Resolver struct {
-	Env       func(string) string
-	PPID      func() int
-	LookupPID LookupFunc
+	Env        func(string) string
+	TerminalID func() (string, bool)
+	PPID       func() int
+	LookupPID  LookupFunc
 }
 
 // DefaultResolver returns a Resolver wired with OS defaults.
 func DefaultResolver() *Resolver {
 	return &Resolver{
-		Env:       os.Getenv,
-		PPID:      os.Getppid,
-		LookupPID: defaultLookupPID,
+		Env:        os.Getenv,
+		TerminalID: defaultTerminalID,
+		PPID:       os.Getppid,
+		LookupPID:  defaultLookupPID,
 	}
 }
 
 // Resolve returns the session identifier following the fallback chain:
 //  1. NB_SESSION_ID env var (validated and checked against SessionPrefix).
-//  2. Walk up the process tree (max walkDepthLimit hops) for a recognized
+//  2. Known terminal/session environment variables inherited through wrappers.
+//  3. OS-specific terminal id, such as a Unix TTY or Windows console window.
+//  4. Walk up the process tree (max walkDepthLimit hops) for a recognized
 //     shell, formatted as "sh-<pid>-<creationHex>".
-//  3. Direct parent PID (same format).
-//  4. "sh-<ppid>" without creation time when LookupPID fails.
-//  5. DefaultSessionID when even os.Getppid returns an unusable value.
+//  5. Direct parent PID (same format).
+//  6. "sh-<ppid>" without creation time when LookupPID fails.
+//  7. DefaultSessionID when even os.Getppid returns an unusable value.
 func (r *Resolver) Resolve() string {
-	if v := strings.TrimSpace(r.Env(EnvVar)); isValidEnvSessionID(v) {
-		return v
+	if r.Env != nil {
+		if v := strings.TrimSpace(r.Env(EnvVar)); isValidEnvSessionID(v) {
+			return v
+		}
+	}
+
+	if id, ok := r.terminalEnvSessionID(); ok {
+		return id
+	}
+
+	if r.TerminalID != nil {
+		if id, ok := r.TerminalID(); ok && isValidDerivedSessionID(id) {
+			return id
+		}
+	}
+
+	if r.PPID == nil {
+		return DefaultSessionID
 	}
 
 	ppid := r.PPID()
@@ -106,6 +165,24 @@ func isValidEnvSessionID(v string) bool {
 		return false
 	}
 	return !strings.HasPrefix(strings.ToLower(v), SessionPrefix)
+}
+
+func isValidDerivedSessionID(v string) bool {
+	return v != "" && sessionIDPattern.MatchString(v)
+}
+
+func (r *Resolver) terminalEnvSessionID() (string, bool) {
+	if r.Env == nil {
+		return "", false
+	}
+	for _, candidate := range terminalEnvVars {
+		value := strings.TrimSpace(r.Env(candidate.name))
+		if value == "" {
+			continue
+		}
+		return FormatDerivedSessionID(candidate.prefix, candidate.name+"="+value), true
+	}
+	return "", false
 }
 
 func (r *Resolver) walkForShell(start int) (string, bool) {
@@ -136,8 +213,24 @@ func (r *Resolver) walkForShell(start int) (string, bool) {
 }
 
 func isRecognizedShell(name string) bool {
-	_, ok := recognizedShells[strings.ToLower(name)]
+	_, ok := recognizedShells[processBaseName(name)]
 	return ok
+}
+
+func processBaseName(name string) string {
+	base := strings.Trim(strings.ToLower(strings.TrimSpace(name)), "\x00")
+	base = filepath.Base(base)
+	if i := strings.LastIndex(base, `\`); i >= 0 {
+		base = base[i+1:]
+	}
+	return base
+}
+
+// FormatDerivedSessionID returns a stable, filesystem-safe identifier for
+// terminal signals inherited through process wrappers such as npm or npx.
+func FormatDerivedSessionID(prefix, value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return terminalPrefix + prefix + "-" + hex.EncodeToString(sum[:8])
 }
 
 // FormatProcessID encodes a Process as a session identifier. When StartTime

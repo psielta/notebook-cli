@@ -10,6 +10,26 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+var procGetConsoleWindow = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetConsoleWindow")
+
+func defaultTerminalID() (string, bool) {
+	hwnd, _, _ := procGetConsoleWindow.Call()
+	if hwnd == 0 {
+		return "", false
+	}
+
+	var pid uint32
+	_, _ = windows.GetWindowThreadProcessId(windows.HWND(hwnd), &pid)
+	if pid == 0 {
+		return "", false
+	}
+
+	if proc, ok := defaultLookupPID(int(pid)); ok {
+		return FormatProcessID(proc), true
+	}
+	return SessionPrefix + strconv.Itoa(int(pid)), true
+}
+
 func defaultLookupPID(pid int) (Process, bool) {
 	snap, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
 	if err != nil {

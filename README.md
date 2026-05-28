@@ -4,7 +4,7 @@
 
 CLI em Go para criar e gerenciar notebooks de notas locais diretamente pelo terminal.
 
-O projeto foi pensado para uso no PowerShell do Windows, com armazenamento local em SQLite, comandos curtos e uma arquitetura simples de manter.
+O projeto funciona em Windows, Linux e macOS, com armazenamento local em SQLite, comandos curtos e uma arquitetura simples de manter.
 
 ## Visao Geral
 
@@ -20,10 +20,12 @@ Arquivos criados:
 
 - `notebook.db`: banco SQLite unico da aplicacao.
 - `sessions/<id>.current`: notebook selecionado na sessao de terminal
-  identificada por `<id>`. Cada janela do PowerShell mantem sua propria
-  selecao; abrir uma segunda janela comeca sem notebook selecionado ate
-  rodar `nb use <nome>`. O `<id>` e derivado do processo do terminal pai
-  (PID + horario de criacao) ou do valor opcional de `NB_SESSION_ID`.
+  identificada por `<id>`. Cada janela, aba ou pane de terminal mantem sua
+  propria selecao; abrir outra sessao comeca sem notebook selecionado ate
+  rodar `nb use <nome>`. O `<id>` usa, nesta ordem: `NB_SESSION_ID`, sinais
+  de terminal herdados por wrappers (`WT_SESSION`, `TERM_SESSION_ID`,
+  `ITERM_SESSION_ID`, `TMUX_PANE`, `SSH_TTY` etc.), TTY Unix ou console
+  Windows e, por fim, a arvore de processos do shell.
 
 ## Funcionalidades
 
@@ -41,6 +43,7 @@ Requisitos:
 
 - Go 1.22 ou superior.
 - PowerShell 7 recomendado no Windows.
+- Shell moderno no Linux/macOS (`bash`, `zsh`, `fish`, `pwsh` etc.).
 
 Build local:
 
@@ -195,7 +198,7 @@ Cobertura atual:
 - `internal/repository`: 93.0%
 - `internal/service`: 95.6%
 
-## Observacoes Para Windows
+## Observacoes Para Terminal
 
 PowerShell 7 ja usa UTF-8 por padrao. Em consoles antigos, rode:
 
@@ -205,9 +208,13 @@ chcp 65001
 
 ### Compartilhando a selecao entre sessoes
 
-Por padrao, cada janela do PowerShell tem sua propria selecao de notebook
-atual. Para forcar duas janelas a compartilharem a selecao (util para
-automacao, CI ou pipes), defina `NB_SESSION_ID` em cada uma:
+Por padrao, cada janela, aba ou pane de terminal tem sua propria selecao de
+notebook atual. Isso tambem funciona quando o binario e chamado por wrappers
+como `npm`, `npx`, scripts `.cmd` ou `node`, desde que o terminal exponha um
+TTY, console Windows ou variaveis de sessao herdadas.
+
+Para forcar duas sessoes a compartilharem a selecao (util para automacao, CI
+ou pipes), defina `NB_SESSION_ID` em cada uma:
 
 ```powershell
 $env:NB_SESSION_ID = "shared"
@@ -218,6 +225,13 @@ A variavel e escopada ao processo do PowerShell; nao use `setx`, pois ele
 grava no registro do usuario e nao afeta sessoes ja abertas. Use um valor
 curto com letras, numeros, `_`, `-` ou `.`, mas nao comece com `sh-`, que e
 reservado para sessoes detectadas automaticamente.
+
+Em Linux/macOS, use a sintaxe do seu shell:
+
+```bash
+export NB_SESSION_ID=shared
+nb use erp
+```
 
 ## Licenca
 

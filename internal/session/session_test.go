@@ -19,6 +19,24 @@ func TestResolveEnvVarTakesPrecedence(t *testing.T) {
 	require.Equal(t, "my-session", r.Resolve())
 }
 
+func TestResolveExplicitEnvVarBeatsTerminalEnv(t *testing.T) {
+	r := &Resolver{
+		Env: func(name string) string {
+			switch name {
+			case EnvVar:
+				return "my-session"
+			case "WT_SESSION":
+				return "terminal-session"
+			default:
+				return ""
+			}
+		},
+		PPID: func() int { return 4321 },
+	}
+
+	require.Equal(t, "my-session", r.Resolve())
+}
+
 func TestResolveEnvVarRejectsInvalidPattern(t *testing.T) {
 	cases := []string{
 		"../escape",
@@ -31,12 +49,47 @@ func TestResolveEnvVarRejectsInvalidPattern(t *testing.T) {
 	for _, bad := range cases {
 		t.Run(bad, func(t *testing.T) {
 			r := &Resolver{
-				Env:  func(string) string { return bad },
+				Env: func(name string) string {
+					if name == EnvVar {
+						return bad
+					}
+					return ""
+				},
 				PPID: func() int { return 0 },
 			}
 			require.Equal(t, DefaultSessionID, r.Resolve())
 		})
 	}
+}
+
+func TestResolveTerminalEnvBeforeProcessTree(t *testing.T) {
+	r := &Resolver{
+		Env: func(name string) string {
+			if name == "WT_SESSION" {
+				return "abc-123"
+			}
+			return ""
+		},
+		PPID: func() int { return 100 },
+		LookupPID: func(pid int) (Process, bool) {
+			return Process{PID: pid, Name: "powershell.exe", StartTime: time.Unix(0, 0xABCDEF)}, true
+		},
+	}
+
+	require.Equal(t, FormatDerivedSessionID("wt", "WT_SESSION=abc-123"), r.Resolve())
+}
+
+func TestResolveOSTerminalIDBeforeProcessTree(t *testing.T) {
+	r := &Resolver{
+		Env:        func(string) string { return "" },
+		TerminalID: func() (string, bool) { return FormatDerivedSessionID("tty", "dev:pty"), true },
+		PPID:       func() int { return 100 },
+		LookupPID: func(pid int) (Process, bool) {
+			return Process{PID: pid, Name: "bash", StartTime: time.Unix(0, 0xABCDEF)}, true
+		},
+	}
+
+	require.Equal(t, FormatDerivedSessionID("tty", "dev:pty"), r.Resolve())
 }
 
 func TestResolveWalksToRecognizedShell(t *testing.T) {
@@ -126,6 +179,13 @@ func TestFormatProcessIDStartTime(t *testing.T) {
 
 func TestFormatProcessIDWithoutStartTime(t *testing.T) {
 	require.Equal(t, "sh-42", FormatProcessID(Process{PID: 42}))
+}
+
+func TestRecognizedShellAcceptsUnixNamesAndPaths(t *testing.T) {
+	require.True(t, isRecognizedShell("/bin/bash"))
+	require.True(t, isRecognizedShell("C:\\Program Files\\PowerShell\\7\\pwsh.exe"))
+	require.True(t, isRecognizedShell("fish"))
+	require.False(t, isRecognizedShell("node"))
 }
 
 func TestDefaultResolverReturnsNonEmpty(t *testing.T) {
