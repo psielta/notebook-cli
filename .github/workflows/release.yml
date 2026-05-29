@@ -1,0 +1,81 @@
+name: Release
+
+# Cut a release by pushing a semver tag:
+#   git tag v1.2.3 && git push origin v1.2.3
+#
+# This workflow then:
+#   1. runs the test suite,
+#   2. builds binaries + creates the GitHub Release (GoReleaser),
+#   3. builds the npm packages and publishes them (platform packages first,
+#      then the main package) with build provenance.
+#
+# One-time setup: add an npm Granular Access Token as the NPM_TOKEN repo secret.
+# See RELEASING.md.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # GoReleaser creates the GitHub Release and uploads assets
+  id-token: write # mint the OIDC token npm uses to sign provenance attestations
+
+# Don't let two runs for the same tag race (e.g. tag push + manual re-run).
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, release and publish
+    runs-on: ubuntu-latest # Linux preserves the binaries' executable bit in the npm tarballs
+    steps:
+      - name: Validate tag
+        # Releases are tag-driven; refuse anything that isn't vMAJOR.MINOR.PATCH
+        # (also catches a workflow_dispatch run from a non-tag ref).
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+].*)?$ ]]; then
+            echo "::error::'${GITHUB_REF_NAME}' is not a vX.Y.Z release tag. Run this on a semver tag." >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # GoReleaser needs full history/tags for the changelog
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Test
+        env:
+          CGO_ENABLED: "0"
+        run: go test ./...
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          registry-url: "https://registry.npmjs.org" # writes the auth .npmrc referencing NODE_AUTH_TOKEN
+
+      - name: Build npm packages
+        run: node scripts/build-npm.mjs --version "${GITHUB_REF_NAME#v}"
+
+      - name: Publish to npm (platform packages first, then main)
+        run: node scripts/publish-npm.mjs --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

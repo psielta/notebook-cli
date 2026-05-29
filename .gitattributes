@@ -1,0 +1,10 @@
+# The npm launcher is a shebang script: it MUST keep LF endings or *nix shells
+# fail with "bad interpreter". This repo is often developed on Windows, so pin it.
+npm/notebook-cli/bin/nb text eol=lf
+
+# Node/shell tooling: keep LF.
+*.mjs text eol=lf
+*.sh  text eol=lf
+
+# Go sources: LF.
+*.go text eol=lf

@@ -1,0 +1,47 @@
+{
+  "name": "@psielta/notebook-cli",
+  "version": "0.0.0",
+  "description": "nb — a fast, local-first notes CLI. Organize notes into notebooks straight from your terminal. Cross-platform, single SQLite store, no daemon, no config.",
+  "bin": {
+    "nb": "bin/nb"
+  },
+  "files": [
+    "bin/nb",
+    "README.md"
+  ],
+  "keywords": [
+    "cli",
+    "notes",
+    "notebook",
+    "note-taking",
+    "sqlite",
+    "terminal",
+    "productivity",
+    "nb",
+    "golang"
+  ],
+  "license": "MIT",
+  "author": "psielta",
+  "homepage": "https://github.com/psielta/notebook-cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/psielta/notebook-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/psielta/notebook-cli/issues"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "optionalDependencies": {
+    "@psielta/nb-linux-x64": "0.0.0",
+    "@psielta/nb-linux-arm64": "0.0.0",
+    "@psielta/nb-darwin-x64": "0.0.0",
+    "@psielta/nb-darwin-arm64": "0.0.0",
+    "@psielta/nb-win32-x64": "0.0.0",
+    "@psielta/nb-win32-arm64": "0.0.0"
+  }
+}

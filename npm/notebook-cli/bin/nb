@@ -1,0 +1,94 @@
+#!/usr/bin/env node
+"use strict";
+
+// Launcher for the `nb` CLI.
+//
+// `nb` is a Go binary; npm can't run Go directly, so this thin Node shim is the
+// package's `bin`. At runtime it resolves the prebuilt binary that shipped as a
+// platform-specific optional dependency (@psielta/nb-<os>-<arch>) and execs it,
+// forwarding argv, stdio, signals and the exit code. There is NO postinstall and
+// NO network access: npm installs only the one optional dependency whose
+// "os"/"cpu" match the host, and this shim hands control to it.
+//
+// To republish under a different npm scope, change SCOPE here and in
+// scripts/build-npm.mjs and package.json (see RELEASING.md).
+
+const { spawnSync } = require("node:child_process");
+const { existsSync } = require("node:fs");
+const path = require("node:path");
+
+const SCOPE = "@psielta";
+
+// process.platform: 'linux' | 'darwin' | 'win32' | ...
+// process.arch:     'x64'   | 'arm64'  | ...
+const { platform, arch, env } = process;
+const pkg = `${SCOPE}/nb-${platform}-${arch}`;
+const binName = platform === "win32" ? "nb.exe" : "nb";
+
+function fail(message) {
+  process.stderr.write(message + "\n");
+  process.exit(1);
+}
+
+function resolveBinary() {
+  // Escape hatch for CI / custom builds: point straight at a binary.
+  if (env.NB_BINARY) return env.NB_BINARY;
+  try {
+    // Resolve the platform package's manifest, then locate its binary next to
+    // it. Resolving package.json (rather than the binary file directly)
+    // sidesteps Node's extension-resolution rules for the extension-less unix
+    // binary, and works under npm, pnpm and Yarn PnP.
+    const manifest = require.resolve(`${pkg}/package.json`);
+    const candidate = path.join(path.dirname(manifest), "bin", binName);
+    // Verify the binary actually exists rather than trusting a computed path,
+    // so a half-installed package falls through to the clear error below.
+    return existsSync(candidate) ? candidate : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+const binary = resolveBinary();
+
+if (!binary) {
+  fail(
+    `[notebook-cli] No prebuilt "nb" binary was found for your platform: ${platform}-${arch}.\n` +
+      `The optional dependency "${pkg}" could not be resolved.\n\n` +
+      `Most likely one of:\n` +
+      `  • Your OS/CPU isn't supported yet (supported: linux/macOS/windows on x64 and arm64).\n` +
+      `  • npm's optional-dependency bug (npm/cli#4828): a package-lock.json generated on\n` +
+      `    another OS/CPU can omit your platform's package. Fix:\n` +
+      `        rm -rf node_modules package-lock.json && npm install\n` +
+      `  • The install skipped optional deps (don't use --omit=optional / --no-optional).\n\n` +
+      `You can also build from source: https://github.com/psielta/notebook-cli\n` +
+      `(then set NB_BINARY to the resulting binary).\n`
+  );
+}
+
+const result = spawnSync(binary, process.argv.slice(2), {
+  stdio: "inherit",
+  // shell:false execs the binary directly: args with spaces/quotes pass through
+  // verbatim and cmd.exe quoting issues on Windows are avoided.
+  shell: false,
+});
+
+if (result.error) {
+  if (result.error.code === "ENOENT") {
+    fail(
+      `[notebook-cli] Could not execute the "nb" binary at:\n  ${binary}\n` +
+        `On Linux/macOS this usually means the file lost its executable bit during packaging.`
+    );
+  }
+  throw result.error;
+}
+
+// If the child was killed by a signal, re-raise it so the parent shell observes
+// the correct termination (e.g. 128+SIGINT). Otherwise propagate the exit code.
+if (result.signal) {
+  try {
+    process.kill(process.pid, result.signal);
+  } catch (_) {
+    /* ignore */
+  }
+}
+process.exit(result.status === null ? 1 : result.status);

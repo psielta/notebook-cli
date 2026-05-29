@@ -4,3 +4,5 @@
 *.exe
 coverage.out
 dist/
+dist-npm/
+node_modules/

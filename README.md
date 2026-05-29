@@ -39,6 +39,25 @@ Arquivos criados:
 
 ## Instalacao
 
+### Via npm (recomendado)
+
+```sh
+npm install -g @psielta/notebook-cli
+```
+
+Ou rode sem instalar:
+
+```sh
+npx @psielta/notebook-cli new erp
+```
+
+A CLI e um binario Go; o pacote npm entrega binarios pre-compilados por
+plataforma como dependencias opcionais, entao a instalacao e instantanea (sem
+postinstall e sem download). Plataformas: Windows, Linux e macOS em `x64` e
+`arm64`. Depois de instalar, o comando disponivel e `nb`.
+
+### A partir do codigo (Go)
+
 Requisitos:
 
 - Go 1.22 ou superior.
@@ -58,6 +77,9 @@ go build -ldflags "-X notebook-cli/internal/version.Version=v1.0.0" -o nb.exe ./
 ```
 
 Depois, use `.\nb.exe` no diretorio do projeto ou adicione o binario ao `PATH`.
+
+> Publicacao: o processo de release (tag `vX.Y.Z` -> GitHub Release + publicacao
+> no npm) esta documentado em [RELEASING.md](RELEASING.md).
 
 ## Uso Rapido
 
@@ -153,8 +175,11 @@ Melhorias planejadas para evoluir o projeto:
 - `nb export`: exportar notas para Markdown ou JSON.
 - `nb import`: importar notas a partir de JSON.
 - `nb stats`: mostrar quantidade de notebooks, notas e data da ultima nota.
-- Instalador simples para Windows, copiando `nb.exe` para uma pasta no `PATH`.
-- Releases no GitHub com binarios prontos para download.
+
+Concluido:
+
+- Distribuicao via npm (`npm i -g @psielta/notebook-cli`).
+- Releases no GitHub com binarios prontos para download (GoReleaser).
 
 ## Arquitetura
 

@@ -1,0 +1,69 @@
+# GoReleaser v2 — builds the GitHub Release (archives + checksums + changelog).
+# The npm packages are built/published separately (scripts/build-npm.mjs +
+# scripts/publish-npm.mjs); both inject the same version into the binary.
+#
+# Validate:    goreleaser check
+# Test build:  goreleaser release --snapshot --clean
+version: 2
+
+project_name: notebook-cli
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: nb
+    main: ./cmd/nb
+    binary: nb
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      # .Tag keeps the leading "v" so `nb --version` prints e.g. "nb v1.2.3",
+      # matching internal/version.Version and scripts/build-npm.mjs.
+      - -s -w
+      - -X notebook-cli/internal/version.Version={{ .Tag }}
+
+archives:
+  - id: nb
+    ids:
+      - nb
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+release:
+  github:
+    owner: psielta
+    name: notebook-cli
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
